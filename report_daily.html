@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report Daily - SMPTRU</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f3f5f7;color:#1f2937}
+.wrap{max-width:900px;margin:35px auto;padding:0 18px}
+.card{background:#fff;border-radius:16px;padding:28px;box-shadow:0 8px 30px rgba(0,0,0,.08);margin-bottom:20px}
+h1{margin:0 0 8px;font-size:27px}
+.sub{color:#6b7280;margin-bottom:24px}
+.upload{border:2px dashed #cbd5e1;border-radius:14px;padding:32px;text-align:center;background:#f8fafc}
+input[type=file]{margin:18px 0}
+button{border:0;border-radius:9px;padding:13px 22px;background:#16a34a;color:#fff;font-weight:700;cursor:pointer}
+button:hover{background:#15803d}
+button:disabled{background:#94a3b8;cursor:not-allowed}
+.hint{font-size:13px;color:#64748b;margin-top:12px;line-height:1.5}
+#result{display:none}
+.input-section{margin-top:20px;padding:20px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc}
+.input-section h3{margin:0 0 16px;font-size:18px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+.field label{font-size:13px;font-weight:700;color:#374151}
+.field input,.field select,.field textarea{width:100%;border:1px solid #cbd5e1;border-radius:8px;padding:11px 12px;font:inherit;background:#fff;color:#1f2937}
+.field textarea{min-height:75px;resize:vertical}
+.field input[readonly]{background:#e5e7eb;color:#374151;cursor:not-allowed}
+.generate{margin-top:16px;background:#16a34a}
+.report{white-space:pre-wrap;font-family:Arial,sans-serif;font-size:16px;line-height:1.65;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:24px}
+.actions{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap}
+.copy{background:#2563eb}.copy:hover{background:#1d4ed8}
+.reset{background:#64748b}.reset:hover{background:#475569}
+.status{margin-top:13px;font-size:14px}.ok{color:#15803d}.err{color:#dc2626}
+.data-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0}
+.box{background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:14px}
+.box small{display:block;color:#64748b;margin-bottom:5px}.box b{font-size:18px}
+@media(max-width:650px){.data-preview{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>REPORT DAILY — SMPTRU</h1>
+    <div class="sub">SUMENEP TRUNOJOYO</div>
+    <div class="upload">
+      <strong>Upload PDF laporan kasir</strong><br>
+      <input id="fileInput" type="file" accept=".pdf">
+      <br>
+      <button id="submitBtn" onclick="processPDF()">SUBMIT DATA</button>
+      <div class="hint">
+        Upload PDF laporan seperti laporan kasir/shift. Sistem akan membaca
+        <b>Net Sales</b>, <b>Pax Total</b> sebagai Total TC, dan total kuantitas
+        pada bagian <b>MIE</b>.
+      </div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <div class="card" id="result">
+    <h2>Hasil Report</h2>
+    <div class="data-preview">
+      <div class="box"><small>Sales Nett</small><b id="salesPreview">-</b></div>
+      <div class="box"><small>Total TC</small><b id="tcPreview">-</b></div>
+      <div class="box"><small>Noodle</small><b id="noodlePreview">-</b></div>
+    </div>
+
+    <div class="input-section">
+      <h3>Input Lead Measurement</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label>TC Ojol</label>
+          <input id="tcOjol" type="number" min="0" value="0" placeholder="Masukkan TC Ojol">
+        </div>
+        <div class="field">
+          <label>Kehabisan Bahan</label>
+          <input id="kehabisanBahan" type="text" value="tidak" readonly>
+        </div>
+        <div class="field">
+          <label>Kondisi Cuaca</label>
+          <input id="kondisiCuaca" type="text" placeholder="Isi keterangan">
+        </div>
+        <div class="field">
+          <label>Status Kehadiran</label>
+          <input id="statusKehadiran" type="text" placeholder="Isi keterangan">
+        </div>
+        <div class="field">
+          <label>Service Time</label>
+          <input id="serviceTime" type="text" placeholder="Isi keterangan">
+        </div>
+        <div class="field">
+          <label>Penutupan Aplikasi</label>
+          <input id="penutupanAplikasi" type="text" value="Tidak" readonly>
+        </div>
+        <div class="field">
+          <label>Equipment</label>
+          <input id="equipment" type="text" value="Tidak Rusak" readonly>
+        </div>
+        <div class="field">
+          <label>Event</label>
+          <input id="event" type="text" placeholder="Isi keterangan">
+        </div>
+      </div>
+      <button class="generate" onclick="generateReport()">GENERATE REPORT</button>
+    </div>
+
+    <div id="report" class="report" style="display:none"></div>
+    <div class="actions">
+      <button class="copy" onclick="copyReport()">SALIN REPORT</button>
+      <button class="reset" onclick="resetForm()">UPLOAD PDF LAIN</button>
+    </div>
+    <div id="copyStatus" class="status"></div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+function parseNum(s){
+  if(s===undefined || s===null) return null;
+  const n=String(s).replace(/[^\d-]/g,'');
+  return n ? Number(n) : null;
+}
+function idNum(n){return Number(n).toLocaleString('id-ID')}
+function rupiah(n){return 'Rp ' + Number(n).toLocaleString('id-ID')}
+
+function normalizeText(text){
+  return String(text || '').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function parseNumberToken(s){
+  if(s===undefined || s===null) return null;
+  const cleaned=String(s).replace(/[^\d]/g,'');
+  return cleaned ? Number(cleaned) : null;
+}
+
+function findValue(text, label){
+  const t=normalizeText(text);
+  // Cari label dengan toleransi terhadap spasi/newline hasil ekstraksi PDF.
+  const escaped=label.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'\\s*');
+  const re=new RegExp(escaped+'\\s*([\\d.]+)','i');
+  const m=t.match(re);
+  return m ? parseNumberToken(m[1]) : null;
+}
+
+function extractDate(text){
+  const t=normalizeText(text);
+  const m=t.match(/(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})/i);
+  if(!m) return new Date().toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+  const d=new Date(Number(m[3]),months[m[2].toLowerCase()],Number(m[1]));
+  return d.toLocaleDateString('id-ID',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+
+function extractNoodle(text){
+  const t=normalizeText(text);
+
+  // Cara paling aman: jumlah Total - MIE DINE IN + Total - MIE TAKE AWAY.
+  const dine=t.match(/Total\s*-\s*MIE\s+DINE\s+IN\s+([\d.]+)/i);
+  const take=t.match(/Total\s*-\s*MIE\s+TAKE\s+AWAY\s+([\d.]+)/i);
+  if(dine && take){
+    return parseNumberToken(dine[1]) + parseNumberToken(take[1]);
+  }
+
+  // Fallback: cari total MIE sebelum bagian MIE ISIAN.
+  const m=t.match(/Total\s*-\s*MIE\s+([\d.]+)\s+[\d.]+/i);
+  if(m) return parseNumberToken(m[1]);
+
+  // Fallback terakhir: jumlah menu mie utama.
+  const a=t.match(/MIE\s+GACOAN\s+(\d[\d.]*)\s+[\d.]+/i);
+  const b=t.match(/MIE\s+HOMPIMPA\s+(\d[\d.]*)\s+[\d.]+/i);
+  const c=t.match(/MIE\s+SUIT\s+(\d[\d.]*)\s+[\d.]+/i);
+  if(a&&b&&c) return parseNumberToken(a[1])+parseNumberToken(b[1])+parseNumberToken(c[1]);
+
+  return null;
+}
+
+async function processPDF(){
+  const input=document.getElementById('fileInput');
+  const status=document.getElementById('status');
+  const btn=document.getElementById('submitBtn');
+
+  if(!input.files.length){
+    status.className='status err';
+    status.textContent='Silakan pilih file PDF terlebih dahulu.';
+    return;
+  }
+
+  btn.disabled=true;
+  status.className='status';
+  status.textContent='Membaca PDF...';
+
+  try{
+    const file=input.files[0];
+    const buffer=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:new Uint8Array(buffer)}).promise;
+    let text='';
+
+    for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
+      const page=await pdf.getPage(pageNo);
+      const content=await page.getTextContent();
+      text += content.items.map(x=>x.str).join(' ') + '\\n';
+    }
+
+    const sales=findValue(text,'Net Sales');
+    const tc=findValue(text,'Pax Total');
+    const noodle=extractNoodle(text);
+    const tanggal=extractDate(text);
+
+    const missing=[];
+    if(sales===null) missing.push('Net Sales');
+    if(tc===null) missing.push('Pax Total');
+    if(noodle===null) missing.push('Total MIE');
+
+    if(missing.length){
+      throw new Error('Data tidak ditemukan: '+missing.join(', ')+'. Pastikan PDF merupakan laporan kasir yang sesuai.');
+    }
+
+    window.reportData={tanggal,sales,tc,noodle};
+
+    document.getElementById('salesPreview').textContent=rupiah(sales);
+    document.getElementById('tcPreview').textContent=idNum(tc);
+    document.getElementById('noodlePreview').textContent=idNum(noodle);
+    document.getElementById('report').textContent=report;
+    document.getElementById('result').style.display='block';
+
+    status.className='status ok';
+    status.textContent='PDF berhasil dibaca dan report berhasil dibuat.';
+    document.getElementById('result').scrollIntoView({behavior:'smooth'});
+  }catch(err){
+    console.error(err);
+    status.className='status err';
+    status.textContent=err.message || 'PDF gagal diproses.';
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+function generateReport(){
+  if(!window.reportData){
+    alert('Upload PDF terlebih dahulu.');
+    return;
+  }
+
+  const d=window.reportData;
+  const tcOjol=document.getElementById('tcOjol').value || '0';
+  const get=id=>document.getElementById(id).value.trim();
+
+  const report=
+`*REPORT DAILY (1271) SMPTRU*
+SUMENEP TRUNOJOYO
+
+Hari / Tanggal : ${d.tanggal}
+Sales Nett : ${rupiah(d.sales)}
+Total TC : ${idNum(d.tc)}
+TC Ojol : ${tcOjol}
+Noodle : ${idNum(d.noodle)}
+
+Lead Measurement
+Kehabisan Bahan : ${get('kehabisanBahan')}
+Kondisi Cuaca : ${get('kondisiCuaca')}
+Status Kehadiran : ${get('statusKehadiran')}
+Service Time : ${get('serviceTime')}
+Penutupan Aplikasi : ${get('penutupanAplikasi')}
+Equipment : ${get('equipment')}
+Event : ${get('event')}`;
+
+  const reportEl=document.getElementById('report');
+  reportEl.textContent=report;
+  reportEl.style.display='block';
+  document.getElementById('copyStatus').textContent='';
+  reportEl.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function copyReport(){
+  const text=document.getElementById('report').textContent;
+  const s=document.getElementById('copyStatus');
+  try{
+    await navigator.clipboard.writeText(text);
+    s.className='status ok';
+    s.textContent='Report berhasil disalin.';
+  }catch(e){
+    s.className='status err';
+    s.textContent='Gagal menyalin otomatis.';
+  }
+}
+
+echo "# dailyreport" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/miegacoansumeneptrunojoyo-sudo/dailyreport.git
+git push -u origin main
+
+function resetForm(){
+  document.getElementById('fileInput').value='';
+  document.getElementById('result').style.display='none';
+  document.getElementById('report').style.display='none';
+  document.getElementById('status').textContent='';
+  document.getElementById('copyStatus').textContent='';
+  document.getElementById('tcOjol').value='0';
+  document.getElementById('kehabisanBahan').value='tidak';
+  document.getElementById('penutupanAplikasi').value='Tidak';
+  document.getElementById('equipment').value='Tidak Rusak';
+  ['kondisiCuaca','statusKehadiran','serviceTime','event'].forEach(id=>document.getElementById(id).value='');
+  window.reportData=null;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+</body>
+</html>
